@@ -55,7 +55,8 @@ class State:
     def generate_initial_state(cls, network):
         cls.reset()
         state = cls.tensorize(network)
-        return network.reset(state)
+        network.reset(state)
+        return state
 
     @classmethod
     def generate_random_initial_state(cls, network):
@@ -112,7 +113,7 @@ class State:
             return obs
 
         for host_addr, host in self.hosts:
-            if not host.reachable:
+            if not np.any(host.reachable):
                 continue
             host_obs = host.observe(address=True,
                                     reachable=True,

@@ -379,6 +379,9 @@ class HostVector:
         cls._process_start_idx = cls._service_start_idx + cls.num_services
         cls.state_size = cls._process_start_idx + cls.num_processes
 
+        print("State size = #subnets + max #hosts in any subnet + 6 + #OS + #services + #processes.")
+        print(f"State size: {cls.state_size}")
+
     @classmethod
     def _subnet_address_idx_slice(cls):
         return slice(cls._subnet_address_idx, cls._host_address_idx)

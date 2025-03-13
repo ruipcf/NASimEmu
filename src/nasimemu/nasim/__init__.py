@@ -1,5 +1,5 @@
-import gym
-from gym.envs.registration import register
+import gymnasium as gym
+from gymnasium.envs.registration import register
 
 from nasimemu.nasim.envs import NASimEnv
 from nasimemu.nasim.scenarios.benchmark import AVAIL_BENCHMARKS
@@ -129,8 +129,9 @@ def _register(id, entry_point, kwargs, nondeterministic, force=True):
 
     Handles issues with re-registering gym environments.
     """
-    env_specs = gym.envs.registry.env_specs
-    if id in env_specs.keys():
+    # env_specs = gym.envs.registry.env_specs
+    env_specs = gym.registry
+    if id in env_specs:
         if not force:
             return
         del env_specs[id]

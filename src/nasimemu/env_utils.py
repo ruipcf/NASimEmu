@@ -5,6 +5,9 @@ import networkx as nx
 import plotly.graph_objects as go
 
 def get_possible_actions(env, s):
+    # esta funcao retorna 280 quando len(env.action_space) = 260. Dá erro de verificacao mais à frente em:
+    #                assert a in self.env.action_space.actions, "Failed to execute " + str(a)
+
     # gather all possible addresses
     addresses = []
     for host_data in s[:-1]:
@@ -12,9 +15,15 @@ def get_possible_actions(env, s):
         addresses.append(host_vector.address)
 
     possible_actions = []
+    # valid_targets = {action.target for action in env.action_space.actions}
 
     for host_add in addresses:
         possible_actions.extend([(host_add, action_id) for action_id in range(len(env.action_list))]) 
+
+    # for host_add in addresses:
+    #     for action_id, action in enumerate(env.action_list):
+    #         if host_add in valid_targets:  # Só adiciona se o target existir
+    #             possible_actions.append((host_add, action_id))
 
     return possible_actions
 

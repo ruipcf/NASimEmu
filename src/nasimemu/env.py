@@ -1,4 +1,4 @@
-import gym, random, copy
+import gymnasium as gym, random, copy
 import numpy as np
 from nasimemu import nasim, env_utils
 
@@ -59,7 +59,6 @@ class PartiallyObservableWrapper():
         # construct and return new observation
         action_result = s[-1]
         obs = np.vstack([list(self.__obs.values()), action_result])
-
         return obs
 
 # observation_format in ['matrix', 'graph']
@@ -78,6 +77,23 @@ class NASimEmuEnv(gym.Env):
 
         self.scenario_name = scenario_name
         self.random_init = random_init
+
+        self._generate_env()
+        initial_obs = self.env.reset()
+
+        if not self.fully_obs:
+            initial_obs = self.env_po_wrapper.reset(initial_obs)
+
+        obs_shape = initial_obs.shape
+        self.observation_space = gym.spaces.Box(
+            low=np.min(initial_obs), high=np.max(initial_obs),
+            shape=obs_shape, dtype=np.float32)
+        
+        self.action_space = self.env.action_space  # 🔹 Now correctly set
+
+        # self.r_tot = 0  # Initialize total reward
+        # self.step_idx = 0
+        # self.captured = False
 
     def _generate_env(self):
         if ':' in self.scenario_name: # there are multiple possible scenarios
@@ -143,10 +159,8 @@ class NASimEmuEnv(gym.Env):
         a_class, a_params = self.action_list[action_id]
         # print(a_class, a_params, target, action_id)
         a = a_class(target=tuple(target), **a_params)
-
         if not self.emulate: # in emulation, we don't know the exact scenario configuration; hence the actions can be different
             assert a in self.env.action_space.actions, "Failed to execute " + str(a)
-
         return a
 
     def _get_subnets(self, s):
@@ -164,7 +178,6 @@ class NASimEmuEnv(gym.Env):
             action_matrix[host_index, action_id] = 1.
 
         s = np.concatenate((s, action_matrix), axis=1)
-
         return s
 
     # action = ((subnet, host), action_id)
@@ -175,13 +188,14 @@ class NASimEmuEnv(gym.Env):
             a = action
 
         if isinstance(a, TerminalAction):
-            s, r, d, i = self.env.step(NoOp())
+            s, r, terminated, truncated, i = self.env.step(NoOp())
             r = 0.
-            d = True
+            terminated = True
 
         else:
-            s, r, d, i = self.env.step(a)
-            d = False # ignore done flag from the environment, the agent has to choose to terminate
+            # s, r, d, i = self.env.step(a)
+            s, r, terminated, truncated, i = self.env.step(a)
+            terminated = False # ignore done flag from the environment, the agent has to choose to terminate
 
         r /= 10. # reward scaling
         self.r_tot += r
@@ -210,7 +224,7 @@ class NASimEmuEnv(gym.Env):
             print(f"Step: {self.step_idx}")
             # print(f"Raw state: \n {s}")
             print(f"Action: {a}")
-            print(f"R: {r} D: {d}")
+            print(f"R: {r} Terminated: {terminated} Truncated: {truncated}")
             print(f"Info: {i}")
 
             self.env.render(obs=s)
@@ -233,24 +247,25 @@ class NASimEmuEnv(gym.Env):
             s = env_utils.convert_to_graph(s, self.subnet_graph, version=2)
 
         i['s_true'] = s
-        i['d_true'] = d
+        i['d_true'] = terminated
         i['step_idx'] = self.step_idx
         i['subnet_graph'] = self.subnet_graph
         i['r_tot'] = self.r_tot
         i['captured'] = self.captured
 
         if (self.step_limit is not None) and (self.step_idx >= self.step_limit):
-            d = True
+            truncated = True
 
-        if d:
-            s = self.reset()
+        if terminated or truncated:
+            # print(f"terminated or truncated TRUE s.shape = {s.shape}")
+            s, _ = self.reset()
 
-        i['done'] = d
-        i['d_true'] = d # fix: this will disable the difference between true termination and step_limit exceedance - both are treated the same
+        i['done'] = terminated or truncated
+        i['d_true'] = terminated
 
-        return s, r, d, i
+        return s, r, terminated, truncated, i
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
         self.step_idx = 0
         self.r_tot = 0.
         self.captured = 0
@@ -292,7 +307,7 @@ class NASimEmuEnv(gym.Env):
             self.env.render_state()
             self.env.render(obs=s)
 
-        return s
+        return s, {}
 
     def render(self, s):
         self.env.render(obs=s)

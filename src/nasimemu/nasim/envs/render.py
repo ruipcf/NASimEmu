@@ -5,6 +5,24 @@ import tkinter as Tk
 import networkx as nx
 from prettytable import PrettyTable
 
+import re
+import ast
+import numpy as np
+
+def parse_tuple(input_str : str) -> str:
+    try:
+        # Remove 'np.int64(' and the corresponding closing ')'
+        cleaned_str = re.sub(r"np\.int64\((\d+)\)", r"\1", input_str)
+
+        eval_tuple = ast.literal_eval(cleaned_str)
+        if not isinstance(eval_tuple, (tuple, list)) or len(eval_tuple) < 2:
+            raise ValueError(f"Invalid tuple format: {cleaned_str}")
+        subnet = int(eval_tuple[0])  # Ensures integer conversion
+        host = eval_tuple[1]
+        return f"subnet: {subnet} host: {host}"
+    except:
+        return input_str
+
 # import order important here
 try:
     import matplotlib
@@ -64,7 +82,12 @@ class Viewer:
         labels = {}
         for n in list(G.nodes):
             colors.append(G.nodes[n]["color"])
-            labels[n] = G.nodes[n]["label"]
+            # labels[n] = G.nodes[n]["label"]
+            if (G.nodes[n]["label"] == "(0, 0)"):
+                labels[n] = "Agent"
+            else:
+                labels[n] = parse_tuple(G.nodes[n]["label"])
+
 
         if ax is None:
             fig = plt.figure(figsize=(width, height))
@@ -72,28 +95,34 @@ class Viewer:
         else:
             fig = ax.get_figure()
 
+        # Move labels slightly above the nodes
+        label_offset = 3  # Adjust this value as needed
+        label_positions = {k: (v[0], v[1] + label_offset) for k, v in self.positions.items()}
+
         nx.draw_networkx_nodes(G,
                                self.positions,
-                               node_size=1000,
+                               node_size=25, #100
                                node_color=colors,
                                ax=ax)
         nx.draw_networkx_labels(G,
-                                self.positions,
+                                label_positions,
                                 labels,
-                                font_size=10,
+                                font_size=3, #10
                                 font_weight="bold")
+        
         nx.draw_networkx_edges(G, self.positions)
         ax.axis('off')
         ax.set_xlim(left=0.0, right=100.0)
         # ax.set_ylim(bottom=0.0, top=100.0)
 
-        legend_entries = EpisodeViewer.legend(compromised=False)
-        ax.legend(handles=legend_entries, fontsize=12, loc=2)
+        legend_entries = EpisodeViewer.legend(compromised=True)
+        ax.legend(handles=legend_entries, fontsize=3, loc=2) #fontsize=12
 
         if show:
             fig.tight_layout()
             plt.show()
-            plt.close(fig)
+            plt.savefig("teste.png")
+            # plt.close(fig)
 
     def render_episode(self, episode, width=7, height=5):
         """Display an episode from Cyber Attack Simulator Environment in a seperate
@@ -480,6 +509,7 @@ def get_host_representation(state, sensitive_hosts, m, representation):
         return representation[6]
     compromised = state.host_compromised(m)
     reachable = state.host_reachable(m)
+
     sensitive = m in sensitive_hosts
     if sensitive:
         if compromised:

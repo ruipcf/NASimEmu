@@ -2,9 +2,9 @@
 
 The NASimEnv class is the main interface for agents interacting with NASim.
 """
-import gym
+import gymnasium as gym
 import numpy as np
-from gym import spaces
+from gymnasium import spaces
 
 from .state import State
 from .render import Viewer
@@ -140,12 +140,14 @@ class NASimEnv(gym.Env):
         float
             reward from performing action
         bool
-            whether the episode has ended or not
+            whether the episode has ended naturally (terminated)
+        bool
+            whether the episode was truncated (e.g., step limit reached)
         dict
             auxiliary information regarding step
             (see :func:`nasim.env.action.ActionResult.info`)
         """
-        next_state, obs, reward, done, info = self.generative_step(
+        next_state, obs, reward, terminated, info = self.generative_step(
             self.current_state,
             action
         )
@@ -159,10 +161,13 @@ class NASimEnv(gym.Env):
 
         self.steps += 1
 
-        if not done and self.scenario.step_limit is not None:
-            done = self.steps >= self.scenario.step_limit
+        # Truncated se o limite de passos foi atingido
+        truncated = False
+        if self.scenario.step_limit is not None:
+            truncated = self.steps >= self.scenario.step_limit
 
-        return obs, reward, done, info
+        return obs, reward, terminated, truncated, info
+
 
     def generative_step(self, state, action):
         """Run one step of the environment using action in given state.

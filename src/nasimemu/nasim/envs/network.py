@@ -30,7 +30,8 @@ class Network:
             host.compromised = False
             host.access = AccessLevel.NONE
             host.reachable = self.subnet_public(host_addr[0])
-            host.discovered = host.reachable
+            # host.discovered = host.reachable
+            host.discovered = bool(np.any(host.reachable))  # Convert array to a single boolean
         return next_state
 
     def perform_action(self, state, action):

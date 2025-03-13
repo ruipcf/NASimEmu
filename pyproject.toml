@@ -11,7 +11,7 @@ authors = [
 description = "Gym based environment for training offensive RL agents in simulated and emulated computer networks."
 readme = "README.md"
 dependencies = [
-    "gym == 0.21.0",
+    "gymnasium",
     "networkx", # For nasim render
     "prettytable", # For nasim render
     "matplotlib", # For nasim render (suppress warning)
@@ -24,4 +24,11 @@ dependencies = [
     "scipy", # For networkx
     # "pygame", # For nasim play
     # "kaleido", # Image with plotly for nasim play
+    "wandb",
+    "torch",
+    "torch_geometric",
+    "torch_scatter",
+    "tqdm",
+    "numba",
+    "kaleido" # For scenarios/visualize_scenario.py
 ]
