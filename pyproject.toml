@@ -30,5 +30,6 @@ dependencies = [
     "torch_scatter",
     "tqdm",
     "numba",
-    "kaleido" # For scenarios/visualize_scenario.py
+    "kaleido", # For scenarios/visualize_scenario.py
+    "streamlit"
 ]
